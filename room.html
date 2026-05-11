@@ -180,6 +180,7 @@
 
 
 <!-- ================= SCRIPT ================= -->
+<!-- API in JS/master.js: API_BASE, fetch ngrok header, XHR patch for SockJS, createSockJsForOffice(). -->
 <script src="JS/master.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
@@ -215,17 +216,20 @@
 
         disconnectSocket();
 
-        const socket = new SockJS(`${API_BASE.replace(/\/api\/?$/, "")}/ws-office`)
-
+        const socket = typeof createSockJsForOffice === "function" ? createSockJsForOffice() : new SockJS(SERVER_ORIGIN + "/ws-office");
+        if (!socket) return;
         stompClient = Stomp.over(socket);
         stompClient.debug = null;
 
         stompClient.connect({}, function () {
             connectedRoomId = roomId;
-            stompSubscription = stompClient.subscribe('/topic/room/' + roomId, function (msg) {
+            stompSubscription = stompClient.subscribe("/topic/room/" + roomId, function (msg) {
                 const chatMessage = JSON.parse(msg.body);
                 displayMessage(chatMessage);
             });
+        }, function () {
+            connectedRoomId = null;
+            console.warn("Room WebSocket (STOMP) could not connect. Check backend, ngrok, and browser console.");
         });
     }
 
@@ -242,7 +246,7 @@
         if (chatMessage.type === "FILE") {
             const fileUrl = chatMessage.content?.startsWith("http")
                 ? chatMessage.content
-                : `http://localhost:8080${chatMessage.content}`;
+                : `${SERVER_ORIGIN}${chatMessage.content}`;
 
             if (chatMessage.fileType?.startsWith("image/")) {
                 nextMessage = { type: "image", data: fileUrl, time: getTime12h(), senderName: chatMessage.senderName || "Unknown" };
