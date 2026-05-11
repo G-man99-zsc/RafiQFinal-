@@ -1,9 +1,29 @@
 // ثوابت وhelpers أساسية — لازم تكون فوق كل حاجة
-const API_BASE = "http://localhost:8080/api";
+const API_BASE = "https://barrette-announcer-ascertain.ngrok-free.dev/api";
 function getAuthUser() {
     return JSON.parse(sessionStorage.getItem("authUser"));
 }
 
+function getBackendOrigin() {
+    return API_BASE.replace(/\/api\/?$/, "");
+}
+const originalFetch = window.fetch.bind(window);
+window.fetch = (input, init = {}) => {
+    const requestUrl = typeof input === "string" ? input : input?.url || "";
+    const isBackendRequest = requestUrl.startsWith(API_BASE) || requestUrl.startsWith(getBackendOrigin());
+
+    if (!isBackendRequest) {
+        return originalFetch(input, init);
+    }
+
+    const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined) || {});
+    headers.set("ngrok-skip-browser-warning", "true");
+
+    return originalFetch(input, {
+        ...init,
+        headers
+    });
+};
 let userChatStateCache = null;
 let userChatStatePromise = null;
 
