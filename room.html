@@ -215,7 +215,8 @@
 
         disconnectSocket();
 
-        const socket = new SockJS('http://localhost:8080/ws-office');
+        const socket = new SockJS(`${API_BASE.replace(/\/api\/?$/, "")}/ws-office`)
+
         stompClient = Stomp.over(socket);
         stompClient.debug = null;
 
